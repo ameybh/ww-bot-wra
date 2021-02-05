@@ -1,8 +1,6 @@
 require('dotenv').config();
 const qrcode = require('qrcode-terminal');
 const { Client } = require('whatsapp-web.js');
-
-
 // setup Wolfram|Alpha API
 const appid = process.env.APPID;
 const WolframAlphaAPI = require('./lib/WolframAlphaAPI.js');
@@ -22,6 +20,16 @@ const client = new Client({
     session: sessionLocal
 });
 
+const handleWRA = message => {
+	console.log(message);
+    if (message.body.startsWith('!' + invokeKey + ' ')) {
+    	// send the rest of the message to Wolfram|Alpha API
+    	const actualMessage = message.body.substring(1 + invokeKey.length);
+    	wraAPI.getShort(actualMessage)
+    		.then(res => message.reply(res));
+    }
+};
+
 client.on('qr', qr => {
     qrcode.generate(qr, {small: true});
 });
@@ -38,17 +46,6 @@ client.on('ready', () => {
     console.log('Client is ready!');
 });
 
-client.on('message', message => {
-    console.log(message);
-    // only reply if message contains invoke keyword as first word
-    // example: !wra <message here>
-    if (message.body.startsWith('!' + invokeKey + ' ')) {
-    	// send the rest of the message to Wolfram|Alpha API
-    	const actualMessage = message.body.substring(1 + invokeKey.length);
-    	wraAPI.getShort(actualMessage)
-    		.then(res => message.reply(res));
-    }
-});
+client.on('message_create', handleWRA);
 
 client.initialize();
-
