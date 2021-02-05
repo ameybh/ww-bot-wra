@@ -7,6 +7,8 @@ const WolframAlphaAPI = require('./lib/WolframAlphaAPI.js');
 let wraAPI = WolframAlphaAPI(appid);
 const invokeKey = 'wra';
 
+const handleShort = require('./handlers/wra/short');
+const handleImage = require('./handlers/wra/image');
 let sessionLocal = JSON.parse(process.env.WW_SESSION);
 console.log(sessionLocal);
 
@@ -19,16 +21,6 @@ const client = new Client({
     puppeteer: puppeteerOptions,
     session: sessionLocal
 });
-
-const handleWRA = message => {
-	console.log(message);
-    if (message.body.startsWith('!' + invokeKey + ' ')) {
-    	// send the rest of the message to Wolfram|Alpha API
-    	const actualMessage = message.body.substring(1 + invokeKey.length);
-    	wraAPI.getShort(actualMessage)
-    		.then(res => message.reply(res));
-    }
-};
 
 client.on('qr', qr => {
     qrcode.generate(qr, {small: true});
@@ -46,6 +38,22 @@ client.on('ready', () => {
     console.log('Client is ready!');
 });
 
-client.on('message_create', handleWRA);
+client.on('message_create', message => {
+    console.log('\n---\nNew Message at ' + String(Date()));
+	console.log('From me? ' + String(message.fromMe));
+	console.log(message.body);
+    if (message.body.startsWith('!' + invokeKey + ' ')) {
+        let text = message.body.substring(2 + invokeKey.length);
+        console.log(text);
+        if (text.startsWith('-i ')) {
+            let query = text.substring(2);
+            console.log(`Querying image result for ${query}`);
+            handleImage(message, query, wraAPI);
+        } else {
+            console.log(`Querying text result for ${text}`);
+            handleShort(message, text, wraAPI);
+        }
+    }
+});
 
 client.initialize();
